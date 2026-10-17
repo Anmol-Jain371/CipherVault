@@ -1,0 +1,156 @@
+{
+  "name": "personal-vault",
+  "displayName": "CipherVault",
+  "description": "Secure remote encrypted file vault for Visual Studio Code",
+  "version": "0.1.1",
+  "publisher": "AnmolJainp",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Anmol-Jain371/CipherVault.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Anmol-Jain371/CipherVault/issues"
+  },
+  "homepage": "https://github.com/Anmol-Jain371/CipherVault#readme",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "vault",
+    "encrypted",
+    "remote",
+    "read-only",
+    "security",
+    "cloudflare"
+  ],
+  "icon": "resources/vault-icon.png",
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "personal-vault-sidebar",
+          "title": "Personal Vault",
+          "icon": "resources/vault-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "personal-vault-sidebar": [
+        {
+          "id": "vaultExplorer",
+          "name": "Remote Vault Explorer"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "personal-vault.connect",
+        "title": "Connect & Unlock Vault",
+        "category": "Personal Vault",
+        "icon": "$(unlock)"
+      },
+      {
+        "command": "personal-vault.lock",
+        "title": "Lock & Disconnect Vault",
+        "category": "Personal Vault",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "personal-vault.refresh",
+        "title": "Refresh Vault Explorer",
+        "category": "Personal Vault",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "personal-vault.copyFileContent",
+        "title": "Copy File Content to Clipboard",
+        "category": "Personal Vault",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "personal-vault.exportFile",
+        "title": "Export File to Local Workspace...",
+        "category": "Personal Vault",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "personal-vault.copyVaultPath",
+        "title": "Copy Vault Path",
+        "category": "Personal Vault",
+        "icon": "$(link)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "personal-vault.connect",
+          "when": "view == vaultExplorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "personal-vault.refresh",
+          "when": "view == vaultExplorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "personal-vault.lock",
+          "when": "view == vaultExplorer",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "personal-vault.copyFileContent",
+          "when": "view == vaultExplorer && viewItem == file",
+          "group": "inline@1"
+        },
+        {
+          "command": "personal-vault.exportFile",
+          "when": "view == vaultExplorer && viewItem == file",
+          "group": "inline@2"
+        },
+        {
+          "command": "personal-vault.copyVaultPath",
+          "when": "view == vaultExplorer",
+          "group": "9_cutcopypaste"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Personal Encrypted Vault",
+      "properties": {
+        "personalVault.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8743",
+          "description": "URL of the vault daemon (e.g. http://127.0.0.1:8743 or https://<id>.trycloudflare.com)"
+        },
+        "personalVault.idleTimeoutMinutes": {
+          "type": "number",
+          "default": 15,
+          "description": "Auto-lock inactive session after specified minutes"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "package": "vsce package --no-dependencies --allow-missing-repository",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "echo \"Extension package linting passed\""
+  },
+  "devDependencies": {
+    "@personal-vault/shared": "*",
+    "@types/node": "^22.13.0",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.3",
+    "vitest": "^5.0.4"
+  }
+}

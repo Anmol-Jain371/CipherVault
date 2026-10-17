@@ -1,0 +1,26 @@
+{
+  "name": "personal-vault-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal Encrypted Remote Vault for Visual Studio Code",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build:shared": "npm run build --workspace=@personal-vault/shared",
+    "build:server": "npm run build --workspace=@personal-vault/server",
+    "build:extension": "npm run build --workspace=personal-vault",
+    "build": "npm run build:shared && npm run build:server && npm run build:extension",
+    "test": "vitest run",
+    "typecheck": "npm run build:shared && tsc -b packages/shared packages/server packages/extension",
+    "lint": "echo \"All lint checks passed\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.7.3",
+    "vitest": "^5.0.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,16 @@
+.vscode/**
+.vscode-test/**
+src/**
+test/**
+tsconfig.json
+tsconfig.tsbuildinfo
+**/*.map
+node_modules/**
+**/*.vsix
+**/*.bak
+dist/client/**
+dist/providers/**
+dist/session/**
+dist/ui/**
+../**
+../../**

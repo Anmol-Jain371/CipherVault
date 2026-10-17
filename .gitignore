@@ -1,0 +1,39 @@
+# Dependency directories
+node_modules/
+.pnpm-store/
+
+# Build artifacts
+dist/
+out/
+build/
+*.tsbuildinfo
+
+# Environment & credentials (CRITICAL: Never commit secrets)
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Vault storage & test vaults (Never commit personal vault data or test vaults)
+.vault_data/
+vault_data/
+*.vault
+*.enc
+scratch/
+
+# VS Code extension packaging
+*.vsix
+*.bak
+.vscode-test/
+
+# Logs and debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Operating system files
+Thumbs.db
+.DS_Store
+Desktop.ini
