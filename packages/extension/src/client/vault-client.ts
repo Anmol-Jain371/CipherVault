@@ -6,6 +6,7 @@ import {
   HEADER_IF_MATCH,
   HEADER_ETAG,
   LoginResponse,
+  UserRole,
 } from '@personal-vault/shared';
 
 export interface ClientConfig {
@@ -16,6 +17,7 @@ export interface ClientConfig {
 export class VaultClient {
   private baseUrl: string;
   private sessionToken: string | null = null;
+  private role: UserRole | null = null;
   private timeoutMs: number;
 
   constructor(config: ClientConfig) {
@@ -31,16 +33,37 @@ export class VaultClient {
     return this.baseUrl;
   }
 
-  public setToken(token: string | null): void {
+  public setToken(token: string | null, role: UserRole | null = null): void {
     this.sessionToken = token;
+    this.role = role;
   }
 
   public getToken(): string | null {
     return this.sessionToken;
   }
 
+  public getRole(): UserRole | null {
+    return this.role;
+  }
+
   public isAuthenticated(): boolean {
     return this.sessionToken !== null;
+  }
+
+  public isHost(): boolean {
+    return this.role === 'host';
+  }
+
+  public isViewer(): boolean {
+    return this.role === 'viewer';
+  }
+
+  public isLocalHost(): boolean {
+    return (
+      this.baseUrl.includes('127.0.0.1') ||
+      this.baseUrl.includes('localhost') ||
+      this.baseUrl.startsWith('http://::1')
+    );
   }
 
   private getAuthHeaders(extra?: Record<string, string>): Record<string, string> {
@@ -111,6 +134,7 @@ export class VaultClient {
     });
     const data = await this.handleResponse<LoginResponse>(res);
     this.sessionToken = data.token;
+    this.role = data.role;
     return data;
   }
 
@@ -122,6 +146,7 @@ export class VaultClient {
     });
     const data = await this.handleResponse<LoginResponse>(res);
     this.sessionToken = data.token;
+    this.role = data.role;
     return data;
   }
 
@@ -137,6 +162,7 @@ export class VaultClient {
       // Best-effort network notification; local lock must never fail even if server is offline
     } finally {
       this.sessionToken = null;
+      this.role = null;
     }
   }
 
@@ -187,7 +213,7 @@ export class VaultClient {
       headers[HEADER_IF_MATCH] = ifMatchEtag;
     }
 
-    const res = await this.fetchWithTimeout(`${this.baseUrl}/api/v1/vault/write?path=${encodeURIComponent(canonicalPath)}`, {
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/api/v1/vault/write?path=${encodeURIComponent(canonicalPath)}&overwrite=true`, {
       method: 'PUT',
       headers: this.getAuthHeaders(headers),
       body: content,

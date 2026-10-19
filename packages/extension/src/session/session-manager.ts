@@ -30,8 +30,20 @@ export class SessionManager {
     return this.client.isAuthenticated();
   }
 
-  public setToken(token: string | null): void {
-    this.client.setToken(token);
+  public getRole() {
+    return this.client.getRole();
+  }
+
+  public isHost(): boolean {
+    return this.client.isHost();
+  }
+
+  public isViewer(): boolean {
+    return this.client.isViewer();
+  }
+
+  public setToken(token: string | null, role?: any): void {
+    this.client.setToken(token, role || null);
     this.resetTimer();
     this._onDidChangeSession.fire(this.isUnlocked());
   }

@@ -4,10 +4,12 @@ import {
   SESSION_MAX_LIFETIME_MS,
   VaultError,
   VaultErrorCode,
+  UserRole,
 } from '@personal-vault/shared';
 
 export interface ActiveSession {
   token: string;
+  role: UserRole;
   createdAt: number;
   lastActiveAt: number;
   expiresAt: number;
@@ -26,11 +28,12 @@ export class SessionStore {
     return this.idleTimeoutMs;
   }
 
-  public createSession(): ActiveSession {
+  public createSession(role: UserRole = 'host'): ActiveSession {
     const token = crypto.randomBytes(32).toString('hex');
     const now = Date.now();
     const session: ActiveSession = {
       token,
+      role,
       createdAt: now,
       lastActiveAt: now,
       expiresAt: now + this.maxLifetimeMs,

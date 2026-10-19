@@ -34,8 +34,10 @@ export function registerAuthRoutes(app: FastifyInstance, authService: AuthServic
   // Check status (public endpoint)
   app.get('/api/v1/auth/status', async (request: FastifyRequest, reply: FastifyReply) => {
     const initialized = await authService.isInitialized();
+    const hasViewer = await authService.hasViewerPassword();
     const authHeader = request.headers.authorization;
     let authenticated = false;
+    let role: string | undefined;
     let expiresAt: number | undefined;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -43,6 +45,7 @@ export function registerAuthRoutes(app: FastifyInstance, authService: AuthServic
       try {
         const session = authService.authenticateToken(token);
         authenticated = true;
+        role = session.role;
         expiresAt = session.expiresAt;
       } catch {
         authenticated = false;
@@ -51,7 +54,9 @@ export function registerAuthRoutes(app: FastifyInstance, authService: AuthServic
 
     return reply.send({
       vaultInitialized: initialized,
+      hasViewerPassword: hasViewer,
       authenticated,
+      role,
       expiresAt,
     });
   });
@@ -74,16 +79,17 @@ export function registerAuthRoutes(app: FastifyInstance, authService: AuthServic
     const session = await authService.initializeVault(body.password);
     return reply.send({
       token: session.token,
+      role: session.role,
       expiresAt: session.expiresAt,
       idleTimeoutMs: authService.getIdleTimeoutMs(),
     });
   });
 
-  // Login / unlock vault with master password
+  // Login / unlock vault with master password (Host) or viewer password (Viewer)
   app.post('/api/v1/auth/login', async (request: FastifyRequest<{ Body: LoginBody }>, reply: FastifyReply) => {
     const body = request.body;
     if (!body || !body.password) {
-      throw new VaultError(VaultErrorCode.INVALID_CREDENTIALS, 'Master password is required', 400);
+      throw new VaultError(VaultErrorCode.INVALID_CREDENTIALS, 'Password is required', 400);
     }
 
     const cfIp = request.headers['cf-connecting-ip'];
@@ -92,9 +98,32 @@ export function registerAuthRoutes(app: FastifyInstance, authService: AuthServic
 
     return reply.send({
       token: session.token,
+      role: session.role,
       expiresAt: session.expiresAt,
       idleTimeoutMs: authService.getIdleTimeoutMs(),
     });
+  });
+
+  // Set or update read-only Viewer Password for lab access (Host only)
+  app.post('/api/v1/auth/viewer-password', async (request: FastifyRequest<{ Body: { hostPassword: string; viewerPassword: string } }>, reply: FastifyReply) => {
+    const { hostPassword, viewerPassword } = request.body || {};
+    if (!hostPassword || !viewerPassword) {
+      throw new VaultError(VaultErrorCode.INVALID_CREDENTIALS, 'Both hostPassword and viewerPassword are required.', 400);
+    }
+
+    await authService.setViewerPassword(hostPassword, viewerPassword);
+    return reply.send({ success: true, message: 'Viewer password configured successfully. Lab users can now log in read-only.' });
+  });
+
+  // Revoke read-only Viewer Password (Host only)
+  app.delete('/api/v1/auth/viewer-password', async (request: FastifyRequest<{ Body: { hostPassword: string } }>, reply: FastifyReply) => {
+    const { hostPassword } = request.body || {};
+    if (!hostPassword) {
+      throw new VaultError(VaultErrorCode.INVALID_CREDENTIALS, 'Host master password is required.', 400);
+    }
+
+    await authService.removeViewerPassword(hostPassword);
+    return reply.send({ success: true, message: 'Viewer password revoked. Guest access is disabled.' });
   });
 
   // Logout / revoke session

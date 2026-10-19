@@ -26,7 +26,8 @@ export function registerVaultRoutes(
     }
 
     const token = authHeader.slice(7).trim();
-    authService.authenticateToken(token);
+    const session = authService.authenticateToken(token);
+    (request as any).session = session;
   });
 
   // Stat file or directory
@@ -62,9 +63,10 @@ export function registerVaultRoutes(
     return reply.send(plaintext);
   });
 
-  // Write file (host-authorized encrypted write; strictly forbidden for remote clients)
+  // Write file (host-authorized encrypted write; strictly forbidden for remote clients or viewers)
   app.put('/api/v1/vault/write', async (request: FastifyRequest<{ Querystring: { path: string; overwrite?: string } }>, reply: FastifyReply) => {
-    if (isRemoteOrProxiedRequest(request)) {
+    const session = (request as any).session;
+    if (isRemoteOrProxiedRequest(request) || !session || session.role !== 'host') {
       throw new VaultError(
         VaultErrorCode.READ_ONLY_MODE,
         'Personal Vault is read-only. Remote write and file creation operations are strictly prohibited.',
@@ -106,9 +108,10 @@ export function registerVaultRoutes(
     return reply.send(stat);
   });
 
-  // Create directory (host-authorized only; strictly forbidden for remote clients)
+  // Create directory (host-authorized only; strictly forbidden for remote clients or viewers)
   app.post('/api/v1/vault/mkdir', async (request: FastifyRequest<{ Body: { path: string } }>, reply: FastifyReply) => {
-    if (isRemoteOrProxiedRequest(request)) {
+    const session = (request as any).session;
+    if (isRemoteOrProxiedRequest(request) || !session || session.role !== 'host') {
       throw new VaultError(
         VaultErrorCode.READ_ONLY_MODE,
         'Personal Vault is read-only. Remote folder creation operations are strictly prohibited.',
@@ -124,9 +127,10 @@ export function registerVaultRoutes(
     return reply.send({ success: true, path });
   });
 
-  // Delete file or directory (host-authorized only; strictly forbidden for remote clients)
+  // Delete file or directory (host-authorized only; strictly forbidden for remote clients or viewers)
   app.delete('/api/v1/vault/entry', async (request: FastifyRequest<{ Querystring: { path: string; recursive?: string } }>, reply: FastifyReply) => {
-    if (isRemoteOrProxiedRequest(request)) {
+    const session = (request as any).session;
+    if (isRemoteOrProxiedRequest(request) || !session || session.role !== 'host') {
       throw new VaultError(
         VaultErrorCode.READ_ONLY_MODE,
         'Personal Vault is read-only. Remote deletion operations are strictly prohibited.',
@@ -142,9 +146,10 @@ export function registerVaultRoutes(
     return reply.send({ success: true, path });
   });
 
-  // Rename or move (host-authorized only; strictly forbidden for remote clients)
+  // Rename or move (host-authorized only; strictly forbidden for remote clients or viewers)
   app.post('/api/v1/vault/rename', async (request: FastifyRequest<{ Body: { oldPath: string; newPath: string } }>, reply: FastifyReply) => {
-    if (isRemoteOrProxiedRequest(request)) {
+    const session = (request as any).session;
+    if (isRemoteOrProxiedRequest(request) || !session || session.role !== 'host') {
       throw new VaultError(
         VaultErrorCode.READ_ONLY_MODE,
         'Personal Vault is read-only. Remote rename and move operations are strictly prohibited.',

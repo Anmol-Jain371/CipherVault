@@ -26,6 +26,9 @@ export interface VaultDirectoryListingResponse {
   entries: VaultDirectoryEntry[];
 }
 
+// User Roles
+export type UserRole = 'host' | 'viewer';
+
 // Authentication DTOs
 export interface LoginRequest {
   password: string;
@@ -33,15 +36,27 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  role: UserRole;
   expiresAt: number;      // Unix ms timestamp
   idleTimeoutMs: number;
 }
 
 export interface SessionStatusResponse {
   authenticated: boolean;
+  role?: UserRole;
   vaultInitialized: boolean;
   expiresAt?: number;
   remainingIdleMs?: number;
+}
+
+// Viewer Key Configuration (Enables read-only access for lab students/viewers)
+export interface ViewerKeyConfig {
+  saltHex: string;
+  verifierHex: string;
+  encryptedVaultKeyHex: string; // vaultKey encrypted with AES-256-GCM using derived viewer key
+  ivHex: string;
+  tagHex: string;
+  createdAt: string;
 }
 
 // Operation Requests
@@ -59,6 +74,11 @@ export interface DeleteRequest {
   recursive?: boolean;
 }
 
+export interface SetViewerPasswordRequest {
+  hostPassword?: string;
+  viewerPassword: string;
+}
+
 // Vault Initialization & Metadata
 export interface VaultMetadata {
   version: number;
@@ -71,7 +91,8 @@ export interface VaultMetadata {
     };
     saltHex: string;
   };
-  verifierHex: string;    // Verification hash to validate password without storing key
+  verifierHex: string;    // Host master password verifier
+  viewer?: ViewerKeyConfig; // Configured viewer credentials for read-only access
   createdAt: string;
   updatedAt: string;
 }

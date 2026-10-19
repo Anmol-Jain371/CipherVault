@@ -59,21 +59,23 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const action = args.action || args._[0];
 
-  if (!action || !['init', 'import', 'export', 'list'].includes(action)) {
+  if (!action || !['init', 'import', 'export', 'list', 'set-viewer-password'].includes(action)) {
     console.log(`
-Personal Vault - Local Host Tool (Secure Offline Ops)
+CipherVault - Local Host Tool (Secure Offline Ops)
 
 Usage:
   node scripts/local-vault-ops.mjs init
   node scripts/local-vault-ops.mjs import --source <fileOrDir> --dest <vaultPath> [--overwrite]
   node scripts/local-vault-ops.mjs export --source <vaultPath> --dest <localDirOrFile>
   node scripts/local-vault-ops.mjs list [--path <vaultPath>]
+  node scripts/local-vault-ops.mjs set-viewer-password [--viewerPassword <pass>]
 
 Options:
   --source <path>     Path on host filesystem or in vault
   --dest <path>       Target path in vault or on host filesystem
   --overwrite         Explicitly allow replacing existing files
   --path <path>       Vault directory path (default: "/")
+  --viewerPassword    Read-only password for college lab users
 `);
     process.exit(0);
   }
@@ -218,6 +220,28 @@ Options:
           console.log(`  ${typeTag} ${ent.path}`);
         }
       }
+    }
+
+    // 5. Configure Read-Only Viewer Password for College Lab Users
+    else if (action === 'set-viewer-password') {
+      const viewerPass = args.viewerPassword || await askPassword('Enter Read-Only Viewer Password for College Lab: ');
+      if (!viewerPass || viewerPass.length < 4) {
+        console.error('[ERROR] Viewer password must be at least 4 characters.');
+        process.exit(1);
+      }
+
+      const { AuthService } = await import('../packages/server/dist/auth/auth.service.js');
+      const { RateLimiter } = await import('../packages/server/dist/auth/rate-limiter.js');
+      const { SessionStore } = await import('../packages/server/dist/auth/session-store.js');
+      const authService = new AuthService(config.storagePath, cryptoEngine, new RateLimiter(5, 60000), new SessionStore());
+
+      await authService.setViewerPassword(password, viewerPass);
+      console.log('\n==========================================================');
+      console.log(' [SUCCESS] Read-Only Viewer Password Configured!');
+      console.log('==========================================================');
+      console.log(' College lab users can now unlock CipherVault using this password.');
+      console.log(' They will have strictly read-only access (no editing, no tampering).');
+      console.log(' Only YOU with your Master Password can edit or upload files!');
     }
   } finally {
     cryptoEngine.lock();

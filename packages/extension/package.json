@@ -2,8 +2,9 @@
   "name": "personal-vault",
   "displayName": "CipherVault",
   "description": "Secure remote encrypted file vault for Visual Studio Code",
-  "version": "0.1.1",
-  "publisher": "AnmolJainp",
+  "version": "0.1.2",
+  "publisher": "UnluckyJainCunt",
+  "author": "UnluckyJainCunt",
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
@@ -29,6 +30,11 @@
   ],
   "icon": "resources/vault-icon.png",
   "main": "./dist/extension.js",
+  "activationEvents": [
+    "onFileSystem:personal-vault",
+    "onView:vaultExplorer",
+    "onStartupFinished"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -43,7 +49,8 @@
       "personal-vault-sidebar": [
         {
           "id": "vaultExplorer",
-          "name": "Remote Vault Explorer"
+          "name": "Remote Vault Explorer",
+          "icon": "resources/vault-icon.svg"
         }
       ]
     },
@@ -83,24 +90,52 @@
         "title": "Copy Vault Path",
         "category": "Personal Vault",
         "icon": "$(link)"
+      },
+      {
+        "command": "personal-vault.importFile",
+        "title": "Import File to Vault...",
+        "category": "Personal Vault",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "personal-vault.createFile",
+        "title": "New Vault File...",
+        "category": "Personal Vault",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "personal-vault.deleteFile",
+        "title": "Delete from Vault",
+        "category": "Personal Vault",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "personal-vault.connect",
+          "command": "personal-vault.createFile",
           "when": "view == vaultExplorer",
           "group": "navigation@1"
         },
         {
-          "command": "personal-vault.refresh",
+          "command": "personal-vault.importFile",
           "when": "view == vaultExplorer",
           "group": "navigation@2"
         },
         {
-          "command": "personal-vault.lock",
+          "command": "personal-vault.refresh",
           "when": "view == vaultExplorer",
           "group": "navigation@3"
+        },
+        {
+          "command": "personal-vault.connect",
+          "when": "view == vaultExplorer",
+          "group": "navigation@4"
+        },
+        {
+          "command": "personal-vault.lock",
+          "when": "view == vaultExplorer",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
@@ -113,6 +148,11 @@
           "command": "personal-vault.exportFile",
           "when": "view == vaultExplorer && viewItem == file",
           "group": "inline@2"
+        },
+        {
+          "command": "personal-vault.deleteFile",
+          "when": "view == vaultExplorer",
+          "group": "inline@3"
         },
         {
           "command": "personal-vault.copyVaultPath",

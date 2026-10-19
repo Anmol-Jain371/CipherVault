@@ -33,16 +33,28 @@ Make sure Windows doesn't put your laptop to sleep automatically:
 Keep your home laptop plugged into wall power so the battery doesn't drain.
 
 ### Step 2: Ingest New Code into Your Vault (If you worked on new files)
-If you created new files or projects you want to access from college, open PowerShell in your project folder:
+If you created new files or projects you want to access from college, you can add them in two easy ways:
+
+**Option A (Easiest — File Picker or Drag & Drop):**
+* Double-click `.\scripts\add-to-vault.bat` $\rightarrow$ A Windows dialog pops up to pick your file or folder!
+* *(Or simply drag and drop any file or folder directly onto `add-to-vault.bat`).*
+
+**Option B (PowerShell Command):**
 ```powershell
 # Import a folder (e.g. your assignments or DSA code):
-.\scripts\local-vault-ops.ps1 -Action import -Password "YourMasterPassword" -Source "C:\Projects\my-code" -VaultPath "/projects/my-code"
+.\scripts\local-vault-ops.ps1 -Action import -Source "C:\Projects\my-code" -Destination "/projects/my-code"
 
 # (If files already exist in vault and you want to replace them, add -Overwrite):
-.\scripts\local-vault-ops.ps1 -Action import -Password "YourMasterPassword" -Source "C:\Projects\my-code" -VaultPath "/projects/my-code" -Overwrite
+.\scripts\local-vault-ops.ps1 -Action import -Source "C:\Projects\my-code" -Destination "/projects/my-code" -Overwrite
 ```
 
-### Step 3: Start the Server & Tunnel
+### Step 3: Set / Change College Lab Viewer Password (Optional)
+If you want to give friends or lab users access to view your files without giving away your Master Password:
+* Double-click `.\scripts\set-viewer-password.bat`
+* Enter your Master Password, then type the simple password you want to share (e.g. `lab2026`).
+* They will only have **Strictly Read-Only** access. Only you can upload or modify files!
+
+### Step 4: Start the Server & Tunnel
 In PowerShell, run:
 ```powershell
 .\scripts\run-all.ps1
@@ -54,10 +66,10 @@ Two windows will open:
    Tunnel URL: https://random-words-1234.trycloudflare.com
    ```
 
-### Step 4: Save the Tunnel URL to Your Phone
+### Step 5: Save the Tunnel URL to Your Phone
 * Copy that `https://...trycloudflare.com` URL and send it to yourself on WhatsApp, Telegram, or Email so you have it ready on your phone!
 
-### Step 5: Lock Your Laptop & Leave
+### Step 6: Lock Your Laptop & Leave
 * Press **`Win + L`** to **Lock your laptop screen**.
 * *(Or close the lid if you configured "Do nothing" above).*
 * **Leave your laptop plugged in and connected to Wi-Fi.**
@@ -68,17 +80,18 @@ Two windows will open:
 ## 🏫 When You Arrive at the College Lab PC
 
 1. Open **Visual Studio Code** on the lab computer.
-2. Make sure the **CipherVault** extension is installed:
+2. Make sure the **CipherVault** extension (by `UnluckyJainCunt`) is installed:
    * Search `CipherVault` in Extensions (`Ctrl+Shift+X`) and click **Install**.
 3. Configure the Tunnel URL:
    * Press `Ctrl+,` to open Settings.
    * Search `personalVault.serverUrl`.
    * Paste the URL from your phone: `https://random-words-1234.trycloudflare.com`.
 4. Connect & Unlock:
-   * Click `$(lock) Vault: Locked` in the status bar (bottom).
-   * Select **Personal Vault: Connect & Unlock Vault**.
-   * Enter your secret **Master Password**.
-   * Status bar turns to `$(unlock) Vault: Connected`!
+   * Click `$(lock) CipherVault: Locked` in the status bar (bottom).
+   * Enter the **Viewer Password** (for safe Read-Only browsing) or your **Master Password** (for Host control).
+   * Status bar turns to:
+     - `$(shield) CipherVault: Host` (Full Access) OR
+     - `$(eye) CipherVault: Viewer (Read-Only)`
 5. Browse your files, right-click to **Copy File Content** or **Export File to Local Workspace** to code and compile locally!
 
 ---

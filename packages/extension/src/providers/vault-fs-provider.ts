@@ -30,9 +30,11 @@ export class VaultFileSystemProvider implements vscode.FileSystemProvider {
       const stat = await this.client.stat(canonicalPath);
       this.sessionManager.touch();
 
+      const isHost = this.sessionManager.isHost();
+
       return {
         type: stat.type === 'directory' ? vscode.FileType.Directory : vscode.FileType.File,
-        permissions: vscode.FilePermission.Readonly,
+        permissions: isHost ? undefined : vscode.FilePermission.Readonly,
         ctime: stat.ctime,
         mtime: stat.mtime,
         size: stat.size,
@@ -60,10 +62,25 @@ export class VaultFileSystemProvider implements vscode.FileSystemProvider {
     ]);
   }
 
-  public async createDirectory(_uri: vscode.Uri): Promise<void> {
-    throw vscode.FileSystemError.NoPermissions(
-      'Personal Vault is strictly read-only. Creating folders from the remote client is prohibited.'
-    );
+  public async createDirectory(uri: vscode.Uri): Promise<void> {
+    if (!this.sessionManager.isUnlocked()) {
+      throw vscode.FileSystemError.NoPermissions('Personal Vault is locked. Unlock to create folders.');
+    }
+
+    if (!this.sessionManager.isHost()) {
+      throw vscode.FileSystemError.NoPermissions(
+        'Personal Vault is strictly read-only for viewers. Only the host with Master Password can create folders.'
+      );
+    }
+
+    try {
+      const canonicalPath = uri.path || '/';
+      await this.client.createDirectory(canonicalPath);
+      this.sessionManager.touch();
+      this._emitter.fire([{ type: vscode.FileChangeType.Created, uri }]);
+    } catch (err: any) {
+      throw vscode.FileSystemError.NoPermissions(`Failed to create directory: ${err.message}`);
+    }
   }
 
   public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
@@ -91,28 +108,82 @@ export class VaultFileSystemProvider implements vscode.FileSystemProvider {
   }
 
   public async writeFile(
-    _uri: vscode.Uri,
-    _content: Uint8Array,
+    uri: vscode.Uri,
+    content: Uint8Array,
     _options: { create: boolean; overwrite: boolean }
   ): Promise<void> {
-    throw vscode.FileSystemError.NoPermissions(
-      'Personal Vault is strictly read-only. Modifying or saving vault files from the remote client is prohibited.'
-    );
+    if (!this.sessionManager.isUnlocked() || !this.sessionManager.isHost()) {
+      throw vscode.FileSystemError.NoPermissions(
+        'Personal Vault is strictly read-only for viewers. Use "Export File to Local Workspace" to code locally in college lab.'
+      );
+    }
+
+    try {
+      const canonicalPath = uri.path;
+      const lastEtag = this.etagCache.get(canonicalPath);
+      const stat = await this.client.writeFile(canonicalPath, content, lastEtag);
+
+      if (stat.etag) {
+        this.etagCache.set(canonicalPath, stat.etag);
+      }
+      this.sessionManager.touch();
+      this._emitter.fire([{ type: vscode.FileChangeType.Changed, uri }]);
+    } catch (err: any) {
+      throw vscode.FileSystemError.NoPermissions(`Failed to save vault file: ${err.message}`);
+    }
   }
 
-  public async delete(_uri: vscode.Uri, _options: { recursive: boolean }): Promise<void> {
-    throw vscode.FileSystemError.NoPermissions(
-      'Personal Vault is strictly read-only. Deleting files or folders from the remote client is prohibited.'
-    );
+  public async delete(uri: vscode.Uri, options: { recursive: boolean }): Promise<void> {
+    if (!this.sessionManager.isUnlocked()) {
+      throw vscode.FileSystemError.NoPermissions('Personal Vault is locked. Unlock to delete files.');
+    }
+
+    if (!this.sessionManager.isHost()) {
+      throw vscode.FileSystemError.NoPermissions(
+        'Personal Vault is strictly read-only for viewers. Only the host with Master Password can delete files.'
+      );
+    }
+
+    try {
+      const canonicalPath = uri.path;
+      await this.client.deleteEntry(canonicalPath, options.recursive);
+      this.etagCache.delete(canonicalPath);
+      this.sessionManager.touch();
+      this._emitter.fire([{ type: vscode.FileChangeType.Deleted, uri }]);
+    } catch (err: any) {
+      throw vscode.FileSystemError.NoPermissions(`Failed to delete entry: ${err.message}`);
+    }
   }
 
   public async rename(
-    _oldUri: vscode.Uri,
-    _newUri: vscode.Uri,
+    oldUri: vscode.Uri,
+    newUri: vscode.Uri,
     _options: { overwrite: boolean }
   ): Promise<void> {
-    throw vscode.FileSystemError.NoPermissions(
-      'Personal Vault is strictly read-only. Renaming or moving entries from the remote client is prohibited.'
-    );
+    if (!this.sessionManager.isUnlocked()) {
+      throw vscode.FileSystemError.NoPermissions('Personal Vault is locked.');
+    }
+
+    if (!this.sessionManager.isHost()) {
+      throw vscode.FileSystemError.NoPermissions(
+        'Personal Vault is strictly read-only for viewers. Only the host with Master Password can rename files.'
+      );
+    }
+
+    try {
+      await this.client.rename(oldUri.path, newUri.path);
+      const oldEtag = this.etagCache.get(oldUri.path);
+      if (oldEtag) {
+        this.etagCache.delete(oldUri.path);
+        this.etagCache.set(newUri.path, oldEtag);
+      }
+      this.sessionManager.touch();
+      this._emitter.fire([
+        { type: vscode.FileChangeType.Deleted, uri: oldUri },
+        { type: vscode.FileChangeType.Created, uri: newUri },
+      ]);
+    } catch (err: any) {
+      throw vscode.FileSystemError.NoPermissions(`Failed to rename entry: ${err.message}`);
+    }
   }
 }
